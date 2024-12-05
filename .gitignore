@@ -1,0 +1,47 @@
+# Any path containing a / is anchored: match from root directory to end of path.
+# A file name is not anchored, can match anywhere. To match a directory/ anywhere,
+# preface with **/
+
+# Inline comments mess with wildcards it seems
+
+*
+!/.gitignore
+
+
+# Deployment utils
+!/.env.tmpl
+!/dc
+!/utils.yaml
+
+# Service directories
+!/calibre/
+!/esphome/
+!/frigate/
+!/gitea/
+!/homeassistant/
+!/immich/
+!/jellyfin/
+!/mdnsd/
+!/portainer/
+!/proxy/
+!/proxy/config/
+!/syncthing/
+!/vpn/
+!/vpn/gluetun/
+
+# Common service files
+!/*/docker-compose.yaml
+!/*/.env.tmpl
+
+# Immich extras
+!/immich/import.sh
+!/immich/rm_db_orphans.*
+
+# haproxy & traefik configs
+!/proxy/config/haproxy.cfg
+!/proxy/config/traefik.yaml
+!/proxy/config/traefik-dynamic.yaml
+
+# gluetun config
+!/vpn/gluetun/.env.tmpl
+!/vpn/gluetun/docker-compose.yaml
