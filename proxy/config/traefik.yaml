@@ -1,0 +1,84 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# "no worries"                       "FUCK"
+# -------------- severity ---------------->
+# DEBUG, INFO, WARN, ERROR, FATAL and PANIC
+log:
+  level: DEBUG 
+  noColor: false
+
+accessLog:
+  format: json
+  fields:
+    defaultMode: drop
+    names:
+      StartLocal: keep
+      ClientHost: keep
+      RequestHost: keep
+      RequestPort: keep
+      RequestMethod: keep
+      RequestPath: keep
+      RouterName: keep
+      ServiceName: keep
+      OriginStatus: keep
+      DownstreamStatusLine: keep
+
+entryPoints:
+  websecure:
+    address: ":443"
+    http:
+      encodeQuerySemicolons: true
+      tls:
+        certResolver: le
+        options: modern@file
+        domains:
+          - main: 'x000.dev'
+            sans:
+              - '*.x000.dev'
+      middlewares: 
+        - default@file
+    transport:
+      # Needed for Immich uploads
+      respondingTimeouts:
+        readTimeout: 600s
+        idleTimeout: 600s
+        writeTimeout: 600s
+  traefik:
+    address: ":9090"
+  st-transfer:
+    address: ":22000"
+  gitea-ssh:
+    address: ":617"
+
+api:
+  insecure: false
+  dashboard: true
+  debug: true
+  disableDashboardAd: true
+
+providers:
+  file:
+    filename: "/etc/traefik/traefik-dynamic.yaml"
+    watch: true
+  docker:
+    endpoint: "tcp://haproxy:2375"
+    network: "traefik-proxy"
+    watch: true
+    exposedbydefault: false
+  providersThrottleDuration: 10
+
+
+certificatesResolvers:
+  le:
+    acme:
+      keyType: "EC256"
+      email: "kris@kjkent.dev"
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      storage: "/etc/traefik/tls/acme.json"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1"
+          - "1.0.0.1"

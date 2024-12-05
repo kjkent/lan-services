@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+######## Variables ########
+# .0/25 Host range: .1 to .127
+net_subnet='192.168.3.0/25'
+net_gateway='192.168.3.1'
+net_name='traefik-proxy'
+docker_root="$script_dir"
+env_file="$docker_root"/.env
+######## /Variables ########
+
+update_all() {
+	cd "$script_dir"
+
+	./dc down
+
+	docker system prune --all --force
+	dock volume prune --all --force
+
+	local count=0
+	until ./dc pull || ((count++ >= 5 )); do
+		echo "Retrying (Attempt $count)..."
+	done
+
+	./dc up -d
+}
+
+
+net_is_up() {
+	docker network ls | grep -F "$net_name" &> /dev/null
+}
+
+net_up() {
+	if ! net_is_up "$net_name"; then
+		docker network create \
+			--subnet "$net_subnet" \
+			--gateway "$net_gateway" \
+			"$net_name"
+	fi
+}
+
+net_down() {
+	if net_is_up "$net_name"; then
+		docker network remove "$net_name"
+	fi
+}
+
+call_compose() {
+	# Only look for compose files in immediate subdirectories
+	compose_files=($(find "$docker_root" \
+		              -mindepth 2 \
+		              -maxdepth 2 \
+		              -iname 'docker-compose.yaml'))
+
+	for compose_file in "${compose_files[@]}"; do
+		docker compose -f "$compose_file" "$@"
+	done
+}
+
+function main () {
+	# If env_file defined, source it
+	if [ -n "$env_file" ]; then source "$env_file"; fi
+	
+	# If this is a call to update, then follow the update_all routine
+	if [ "$1" = "update" ]; then
+		update_all
+		return
+	fi
+
+	# If starting up, ensure network is up first
+	if [ "$1" = 'up' ]; then net_up 1>/dev/null; fi
+
+	# Run the command on each compose file
+	call_compose "$@"
+
+	# If bringing down, stop network last
+	if [ "$1" = 'down' ]; then net_down 1>/dev/null; fi
+}
+
+main "$@"

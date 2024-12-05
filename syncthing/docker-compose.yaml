@@ -1,0 +1,36 @@
+services:
+  syncthing:
+    command: ["--no-default-folder"]
+    container_name: syncthing
+    environment:
+      TZ: "${TZ:-Europe/London}"
+      PUID: "${DOCKER_UID}"
+      GUID: "${DOCKER_GID}"
+    hostname: sync
+    image: syncthing/syncthing:latest
+    restart: always
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.syncthing.loadbalancer.server.port: "8384"
+      traefik.http.routers.syncthing.entrypoints: "websecure"
+      traefik.http.routers.syncthing.rule: "Host(`sync.x000.dev`)"
+      traefik.tcp.routers.syncthing.rule: "HostSNI(`*`)"
+      traefik.tcp.routers.syncthing.middlewares: "trusted-networks@file"
+      traefik.tcp.routers.syncthing.entrypoints: "st-transfer"
+      traefik.tcp.services.syncthing.loadbalancer.server.port: "22000"
+    networks:
+      - traefik-proxy
+    user: "$DOCKER_UID:$DOCKER_GID" 
+    volumes:
+      - ./storage:/data
+      - ./config:/var/syncthing/config
+    healthcheck:
+      test: curl -fkLsS -m 2 127.0.0.1:8384/rest/noauth/health | grep -o --color=never OK || exit 1
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

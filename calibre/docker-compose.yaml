@@ -1,0 +1,47 @@
+services:
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    container_name: calibre
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - 105 
+    security_opt:
+      - seccomp:unconfined #For gui functionality (syscalls are unknown to Docker)
+    environment:
+      - PUID=$DOCKER_UID
+      - PGID=$DOCKER_GID
+      - TZ=$TZ
+      - TITLE=Calibre
+      - DRINODE=/dev/dri/renderD128
+      - LC_ALL=en_GB.UTF-8
+      #- NO_DECOR=1
+      #- PASSWORD= #optional
+      #- CLI_ARGS= #optional
+    networks:
+      - traefik-proxy
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.calibre.loadbalancer.server.port: "8080"
+      traefik.http.services.calibre-opds.loadbalancer.server.port: "8081"
+      traefik.http.routers.calibre.service: 'calibre'
+      traefik.http.routers.calibre-opds.service: 'calibre-opds'
+      traefik.http.routers.calibre.entrypoints: "websecure"
+      traefik.http.routers.calibre-opds.entrypoints: "websecure"
+      traefik.http.routers.calibre.rule: "Host(`calibre.x000.dev`) && ! PathPrefix(`/opds`)"
+      traefik.http.routers.calibre-opds.rule: "Host(`calibre.x000.dev`) && PathPrefix(`/opds`)"
+      #traefik.http.routers.calibre-opds.middlewares: "default@file, cal-strip-opds@docker"
+      #traefik.http.middlewares.cal-strip-opds.stripprefix.prefixes: "/opds"
+    user: 0:0
+    volumes:
+      - ./data:/config
+    #ports:
+    #  - 8080:8080
+    #  - 8181:8181
+    #  - 8081:8081
+    restart: always
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

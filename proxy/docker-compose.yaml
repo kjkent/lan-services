@@ -1,0 +1,56 @@
+x-service_defaults: &service_defaults
+  restart: always
+    
+services:
+  traefik:
+    <<: *service_defaults
+    cap_add:
+     - NET_BIND_SERVICE
+    container_name: traefik
+    depends_on:
+      haproxy:
+        condition: service_started
+    env_file: ./.env
+    image: traefik:latest
+    networks:
+      - traefik-proxy
+      - socket-net
+    ports:           #  entrypoints (all http --> 443):
+      - 443:443      #    - websecure
+      - 617:617      #    - gitea-ssh
+      - 22000:22000  #    - st-transfer
+    volumes:
+      - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./config/traefik-dynamic.yaml:/etc/traefik/traefik-dynamic.yaml:ro
+      - ./tls/:/etc/traefik/tls:X
+      - /etc/localtime:/etc/localtime:ro
+
+  haproxy:
+    <<: *service_defaults
+    container_name: haproxy
+    # Needs to be in 'docker' group on host
+    group_add:
+      - 109 
+    image: haproxy:alpine
+    networks:
+      - socket-net
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - haproxy_run:/var/run/
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+networks:
+  traefik-proxy:
+    external: true
+
+  socket-net:
+    name: socket-net
+    attachable: false
+    internal: true
+
+volumes:
+  haproxy_run:
+    name: haproxy_run
+    driver_opts:
+      device: tmpfs
+      type: tmpfs

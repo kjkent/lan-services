@@ -1,0 +1,28 @@
+x-volumes: &volumes
+  volumes:
+    - ./config:/config
+    - /etc/localtime:/etc.localtime:ro
+
+services:
+  esphome:
+    container_name: esphome
+    environment:
+      - PLATFORMIO_CORE_DIR=.plattformio
+      - PLATFORMIO_GLOBALLIB_DIR=.plattformioLibs
+      - ESPHOME_DASHBOARD_USE_PING=true
+    image: esphome/esphome:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.esphome.loadbalancer.server.port: "6052"
+      traefik.http.routers.esphome.entrypoints: "websecure"
+      traefik.http.routers.esphome.rule: "Host(`esphome.x000.dev`)"
+    networks:
+      - traefik-proxy
+    restart: always
+    user: $DOCKER_UID:$DOCKER_GID
+    <<: *volumes
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

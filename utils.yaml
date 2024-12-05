@@ -1,0 +1,6 @@
+services:
+  chown:
+    image: alpine
+    user: 0:0
+    network_mode: none
+    command: sh -c 'chown -R "$$CHOWN" /chown'

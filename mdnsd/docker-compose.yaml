@@ -1,0 +1,10 @@
+services:
+  mdnsd:
+    container_name: mdnsd
+    environment:
+      MDNSD_DOCKER_NETWORKS: 'traefik-proxy'
+      MDNSD_HOST_INTERFACES: 'ens18'
+    image: kjkent/mdnsd:dev
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

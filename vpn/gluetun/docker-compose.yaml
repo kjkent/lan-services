@@ -1,0 +1,33 @@
+services:
+  gluetun:
+    user: 0:0
+    container_name: gluetun
+    image: qmcgaw/gluetun:latest
+    cap_add:
+      - NET_ADMIN
+    env_file: ./.env
+    restart: always
+    networks:
+      - traefik-proxy
+      - gluetun-vpn
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.aria2.loadbalancer.server.port: "8009"
+      traefik.http.services.aria2.loadbalancer.serversTransport: "noverify@file"
+      traefik.http.routers.aria2.entrypoints: "websecure"
+      traefik.http.routers.aria2.rule: "Host(`aria.x000.dev`) && PathPrefix(`/jsonrpc`)"
+      traefik.http.routers.aria2.service: "aria2"
+      traefik.http.services.ariang.loadbalancer.server.port: "8008"
+      traefik.http.routers.ariang.entrypoints: "websecure"
+      traefik.http.routers.ariang.rule: "Host(`aria.x000.dev`) && !PathPrefix(`/jsonrpc`)"
+      traefik.http.routers.ariang.service: "ariang"
+      traefik.http.services.ariang.loadbalancer.serversTransport: "noverify@file"
+    volumes:
+      - .:/gluetun
+
+networks:
+  gluetun-vpn:
+    name: gluetun-vpn
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

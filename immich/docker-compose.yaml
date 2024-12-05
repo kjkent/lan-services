@@ -1,0 +1,99 @@
+x-immich-env: &immich-env
+  env_file: ./.env
+  restart: always
+  user: $DOCKER_UID:$DOCKER_GID
+  networks:
+    - immich
+
+services:
+  immich-chown:
+    container_name: immich-chown
+    extends:
+      file: ../utils.yaml
+      service: chown
+    environment:
+      CHOWN: $DOCKER_UID:$DOCKER_GID
+    volumes:
+      - ml-cache:/chown/ml-cache
+      - redis:/chown/redis
+
+  immich-server:
+    <<: *immich-env
+    container_name: immich-server
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - 105
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.immich.loadbalancer.server.port: "2283"
+      traefik.http.routers.immich.entrypoints: "websecure"
+      traefik.http.routers.immich.rule: "Host(`immich.x000.dev`)"
+    networks:
+      - traefik-proxy
+      - immich
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./media:/usr/src/app/upload
+      - ./import:/import:ro
+    depends_on:
+      immich-redis:
+        condition: service_started
+      immich-postgres:
+        condition: service_started
+
+  immich-machine-learning:
+    <<: *immich-env
+    container_name: immich-machine-learning
+    depends_on:
+      immich-chown:
+        condition: service_completed_successfully
+    environment:
+      MPLCONFIGDIR: /cache/matplotlib
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - ml-cache:/cache
+
+  immich-redis:
+    <<: *immich-env
+    container_name: immich-redis
+    depends_on:
+      immich-chown:
+        condition: service_completed_successfully
+    healthcheck:
+      test: redis-cli ping || exit 1
+    image: redis:6.2-alpine
+    volumes:
+      - redis:/data
+
+  immich-postgres:
+    <<: *immich-env
+    command: ["postgres", "-c" ,"shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
+    container_name: immich-postgres
+    healthcheck:
+      interval: 5m
+      start_interval: 30s
+      start_period: 5m
+      test: pg_isready --dbname='${DB_DATABASE_NAME}' --username='${DB_USERNAME}' || exit 1; Chksum="$$(psql --dbname='${DB_DATABASE_NAME}' --username='${DB_USERNAME}' --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    environment:
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_DATABASE_NAME}"
+      PGDATA: '/var/lib/postgresql/data/pgdata'
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+      # SElinux fixes// :z == shared mount || :Z == private unshared mount
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+
+networks:
+  immich:
+    name: "immich"
+  traefik-proxy:
+    external: true
+
+volumes:
+  ml-cache:
+  redis:
+

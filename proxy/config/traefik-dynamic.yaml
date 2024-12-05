@@ -1,0 +1,189 @@
+http:
+  services:
+    traefik:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9090"
+
+    proxmox:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.100.2:8006"
+        serversTransport: noverify
+
+    opnsense:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.1.1:443"
+        serversTransport: noverify
+
+    mainsail:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.2:80"
+
+    moonraker:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.2:7125"
+
+    cups:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.2:631"
+
+    ufo:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.1.2:443"
+        serversTransport: noverify
+
+  routers:
+    cups:
+      entrypoints:
+        - 'websecure'
+      service: cups
+      rule: "Host(`cups.x000.dev`)"
+
+    traefik:
+      entrypoints:
+        - 'websecure'
+      service: api@internal
+      rule: "Host(`traefik.x000.dev`)"
+
+    moonraker:
+      entrypoints:
+        - 'websecure'
+      service: moonraker
+      rule: "Host(`print.x000.dev`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
+    
+    mainsail:
+      entrypoints:
+        - 'websecure'
+      service: mainsail
+      rule: "Host(`print.x000.dev`)"
+    
+    proxmox:
+      entrypoints:
+        - 'websecure'
+      service: proxmox
+      rule: "Host(`pve.x000.dev`)"
+
+    opnsense:
+      entrypoints:
+        - 'websecure'
+      service: opnsense
+      rule: "Host(`opnsense.x000.dev`)"
+
+    ufo:
+      entrypoints:
+        - 'websecure'
+      service: ufo
+      rule: "Host(`ufo.x000.dev`)"
+    
+  serversTransports:
+    noverify:
+      insecureSkipVerify: true
+
+  middlewares:
+    default:
+      chain:
+        middlewares:
+          - tls-upgrade
+          - secure-headers
+          - trusted-networks
+          #- compression
+
+    trusted-networks:
+      ipAllowList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "192.168.0.0/16"
+
+    tls-upgrade:
+      redirectScheme:
+        scheme: "https"
+        permanent: true
+
+    secure-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 63072000
+        hostsProxyHeaders:
+          - "X-Forwarded-Host"
+        sslProxyHeaders:
+          X-Forwarded-Proto: "https"
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex,noindex,nofollow"
+          server: ""
+          X-Powered-By: ""
+
+    compression:
+      compress: {}
+
+tls:
+  stores:
+    default:
+      defaultGeneratedCert:
+        resolver: le
+        domain:
+          main: 'x000.dev'
+          sans:
+            - '*.x000.dev'
+
+
+  options:
+  # https://ssl-config.mozilla.org/#server=traefik
+    modern:
+      minVersion: "VersionTLS13"
+      sniStrict: true
+
+    intermediate:
+      minVersion: "VersionTLS12"
+      sniStrict: true
+      cipherSuites:
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+
+    old:
+      minVersion: "TLSv1"
+      sniStrict: true
+      cipherSuites:
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        - "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+        - "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+        - "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+        - "TLS_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_RSA_WITH_AES_128_CBC_SHA256"
+        - "TLS_RSA_WITH_AES_128_CBC_SHA"
+        - "TLS_RSA_WITH_AES_256_CBC_SHA"
+        - "TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+
+tcp:
+  middlewares:
+    trusted-networks:
+      ipAllowList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "192.168.0.0/16"

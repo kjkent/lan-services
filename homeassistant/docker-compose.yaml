@@ -1,0 +1,24 @@
+x-volumes: &volumes
+  volumes:
+    - ./config:/config
+    - /etc/localtime:/etc/localtime:ro
+
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.homeassistant.loadbalancer.server.port: "8123"
+      traefik.http.routers.homeassistant.entrypoints: "websecure"
+      traefik.http.routers.homeassistant.rule: "Host(`ha.x000.dev`)"
+    restart: always
+    networks:
+      - traefik-proxy
+    user: $DOCKER_UID:$DOCKER_GID
+    <<: *volumes
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

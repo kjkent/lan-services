@@ -1,0 +1,42 @@
+x-volumes: &volumes
+  volumes:
+      - ./aria2/config:/config
+      - ./aria2/downloads:/downloads
+
+include:
+  - ./gluetun/docker-compose.yaml
+
+services:
+  aria2:
+    container_name: aria2
+    depends_on:
+      gluetun:
+        condition: service_started
+    environment:
+      - PUID=$DOCKER_UID
+      - PGID=$DOCKER_GID
+      - UMASK_SET=027
+      - RPC_SECRET=""
+      - RPC_PORT=8009
+      - LISTEN_PORT=6888
+      - DISK_CACHE=64M
+      - IPV6_MODE=false
+      - UPDATE_TRACKERS=true
+      - TZ
+    image: p3terx/aria2-pro:test
+    network_mode: "service:gluetun"
+    restart: always
+    # Breaks without internal root
+    user: 0:0
+    <<: *volumes
+            
+  ariang:
+    command: --port 8008
+    container_name: ariang
+    depends_on:
+      gluetun:
+        condition: service_started
+    image: p3terx/ariang:latest
+    network_mode: "service:gluetun"
+    restart: always
+    user: $DOCKER_UID:$DOCKER_GID

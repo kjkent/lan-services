@@ -1,0 +1,30 @@
+services:
+  gitea:
+    container_name: gitea
+    environment:
+      USER_UID: "$DOCKER_UID"
+      USER_GID: "$DOCKER_GID"
+      USER: git
+    image: gitea/gitea:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.gitea.loadbalancer.server.port: "3000"
+      traefik.http.routers.gitea.entrypoints: "websecure"
+      traefik.http.routers.gitea.rule: "Host(`git.x000.dev`)"
+      traefik.tcp.routers.gitea.rule: "HostSNI(`*`)"
+      traefik.tcp.routers.gitea.middlewares: "trusted-networks@file"
+      traefik.tcp.routers.gitea.entrypoints: "gitea-ssh"
+      traefik.tcp.services.gitea.loadbalancer.server.port: "22"
+    networks:
+      - traefik-proxy
+    restart: always
+    user: 0:0
+    volumes:
+      - ./data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true

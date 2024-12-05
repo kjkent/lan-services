@@ -1,0 +1,36 @@
+x-volumes: &volumes
+  volumes:
+    - ./config:/config
+    - ./media:/media
+    - jellyfin-cache:/cache
+    - jellyfin-transcode:/transcode
+
+services:
+  jellyfin:
+    container_name: jellyfin
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - 105
+    image: jellyfin/jellyfin:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.jellyfin.loadbalancer.server.port: "8096"
+      traefik.http.routers.jellyfin.entrypoints: "websecure"
+      traefik.http.routers.jellyfin.rule: "Host(`jellyfin.x000.dev`)"
+    restart: always
+    networks:
+      - traefik-proxy
+    ports:
+      - "8096:8096"
+    user: "$DOCKER_UID:$DOCKER_GID"
+    <<: *volumes
+
+volumes:
+  jellyfin-transcode:
+  jellyfin-cache:
+    
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: true
