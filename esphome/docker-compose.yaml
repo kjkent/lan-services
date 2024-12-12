@@ -1,15 +1,36 @@
 x-volumes: &volumes
   volumes:
+    # Otherwise esphome caches in config/.esphome/.platformio
+    - cache:/cache
     - ./config:/config
+    - pio:/pio
+    - pio-libs:/pio-libs
     - /etc/localtime:/etc.localtime:ro
 
 services:
+  # Docker's been asked since 2016 to allow named volumes
+  # to be writable/owned by non-root users. Alas, no.
+  # The horrors persist and so must we.
+  esphome-chown:
+    container_name: esphome-chown
+    extends:
+      file: ../utils.yaml
+      service: chown
+    environment:
+      CHOWN: $DOCKER_UID:$DOCKER_GID
+    volumes:
+      - cache:/chown/cache
+      - pio:/chown/pio
+      - pio-libs:/chown/pio-libs
   esphome:
     container_name: esphome
+    depends_on:
+      esphome-chown:
+        condition: service_completed_successfully
     environment:
-      - PLATFORMIO_CORE_DIR=.plattformio
-      - PLATFORMIO_GLOBALLIB_DIR=.plattformioLibs
-      - ESPHOME_DASHBOARD_USE_PING=true
+      PLATFORMIO_CORE_DIR: "/pio"
+      PLATFORMIO_GLOBALLIB_DIR: "/pio-libs"
+      ESPHOME_DASHBOARD_USE_PING: "true"
     image: esphome/esphome:latest
     labels:
       traefik.enable: "true"
@@ -26,3 +47,8 @@ networks:
   traefik-proxy:
     name: traefik-proxy
     external: true
+
+volumes:
+  cache:
+  pio:
+  pio-libs:

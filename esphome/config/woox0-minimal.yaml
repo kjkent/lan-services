@@ -1,0 +1,14 @@
+## Minimal example (in case of OOS error, upload this to flash)
+esphome:
+  name: woox-minimal
+  platform: ESP8266
+  board: esp01_1m
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  domain: !secret wifi_password

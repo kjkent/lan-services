@@ -36,6 +36,7 @@
 
 # esphome config
 !/esphome/config/woox0.yaml
+!/esphome/config/woox0-minimal.yaml
 !/esphome/config/secrets.yaml.tmpl
 
 # Immich extras
