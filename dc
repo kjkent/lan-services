@@ -17,7 +17,7 @@ update_all() {
 	./dc down
 
 	docker system prune --all --force
-	dock volume prune --all --force
+	docker volume prune --all --force
 
 	local count=0
 	until ./dc pull || ((count++ >= 5 )); do

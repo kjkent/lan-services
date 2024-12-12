@@ -1,0 +1,94 @@
+## For Woox r4785
+
+substitutions:
+  device_name: woox0
+
+esphome:
+  name: "${device_name}"
+  platform: ESP8266
+  board: esp01_1m
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  domain: !secret wifi_domain
+  manual_ip:
+    static_ip: 192.168.1.10
+    gateway: 192.168.1.1
+    subnet: 255.255.255.0
+
+  ap:
+    ssid: "${device_name} Fallback Hotspot"
+    password: !secret fallback_password
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+captive_portal:
+logger:
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "${device_name} Button"
+    id: "${device_name}_button"
+    on_click:
+      - switch.toggle: "${device_name}_relay"
+
+switch:
+  - platform: gpio
+    name: "${device_name}"
+    id: "${device_name}_relay"
+    pin: GPIO05
+
+output:
+  - platform: gpio
+    pin: GPIO04
+    inverted: true
+    id: led
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal %"
+    id: wifi_signal_db
+    update_interval: 60s
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    entity_category: "diagnostic"
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    ssid:
+      name: "Connected SSID"
+    mac_address:
+      name: "MAC Address"
+    scan_results:
+      name: "Latest Scan Results"
+
+## Minimal example (in case of OOS error, upload this to flash)
+# esphome:
+#   name: woox-minimal
+#
+# esp8266:
+#   board: esp01_1m
+#
+# ota:
+#   - platform: esphome
+#     password: !secret ota_password
+#
+# wifi:
+#   ssid: !secret wifi_ssid
+#   password: !secret wifi_password
+#   domain: !secret wifi_password
