@@ -1,12 +1,14 @@
 # Any path containing a / is anchored: match from root directory to end of path.
 # A file name is not anchored, can match anywhere. To match a directory/ anywhere,
-# preface with **/
+# preface with `**/`. Inline comments mess with wildcards it seems.
 
-# Inline comments mess with wildcards it seems
 
+# Ignore all....except
 *
-!/.gitignore
 
+# git files
+!/.gitignore
+!/.gitmodules
 
 # Deployment utils
 !/.env.tmpl
@@ -22,6 +24,7 @@
 !/homeassistant/
 !/immich/
 !/jellyfin/
+!/klipper/
 !/mdnsd/
 !/portainer/
 !/proxy/
