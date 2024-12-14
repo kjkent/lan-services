@@ -27,8 +27,8 @@
 !/klipper/
 !/mdnsd/
 !/portainer/
-!/proxy/
-!/proxy/config/
+!/traefik/
+!/traefik/config/
 !/syncthing/
 !/vpn/
 !/vpn/gluetun/
@@ -46,10 +46,10 @@
 !/immich/import.sh
 !/immich/rm_db_orphans.*
 
-# haproxy & traefik configs
-!/proxy/config/haproxy.cfg
-!/proxy/config/traefik.yaml
-!/proxy/config/traefik-dynamic.yaml
+# traefik & haproxy (for docker socket) configs
+!/traefik/config/haproxy.cfg
+!/traefik/config/traefik.yaml
+!/traefik/config/traefik-dynamic.yaml
 
 # gluetun config
 !/vpn/gluetun/.env.tmpl
